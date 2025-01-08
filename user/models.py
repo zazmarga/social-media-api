@@ -47,3 +47,8 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+
+class InvalidToken(models.Model):
+    token = models.CharField(max_length=100, unique=True)
+    added_at = models.DateTimeField(auto_now_add=True)
