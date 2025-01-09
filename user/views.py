@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 
 from user.authentication import SocialMediaTokenAuthentication
 from user.models import InvalidToken
-from user.serializers import UserSerializer
+from user.serializers import UserSerializer, UserUpdateSerializer
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -35,7 +35,7 @@ class LoginUserView(ObtainAuthToken):
 
 
 class ManageUserView(generics.RetrieveUpdateAPIView):
-    serializer_class = UserSerializer
+    serializer_class = UserUpdateSerializer
     authentication_classes = (SocialMediaTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
