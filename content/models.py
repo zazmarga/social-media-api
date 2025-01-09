@@ -7,10 +7,7 @@ from django.utils.text import slugify
 
 
 def media_file_path(instance: "Profile", filename: str, catalog: str) -> pathlib.Path:
-    filename = (
-        f"{slugify(instance.id)}-{instance.nickname}-{uuid.uuid4()}"
-        + pathlib.Path(filename).suffix
-    )
+    filename = f"{slugify(instance.id)}-{uuid.uuid4()}" + pathlib.Path(filename).suffix
     return pathlib.Path(f"upload/{catalog}/") / pathlib.Path(filename)
 
 
@@ -31,7 +28,9 @@ class Profile(models.Model):
     user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE)
     nickname = models.CharField(max_length=48)
     profile_status = models.CharField(null=True, blank=True, max_length=255)
-    profile_picture = models.ImageField(null=True, upload_to=profile_picture_file_path)
+    profile_picture = models.ImageField(
+        null=True, blank=True, upload_to=profile_picture_file_path
+    )
     birth_date = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
     bio = models.TextField(null=True, blank=True)
@@ -53,7 +52,7 @@ class Profile(models.Model):
         ]
 
     def __str__(self):
-        return self.nickname
+        return f"{self.user} - {self.nickname}"
 
 
 class Post(models.Model):
@@ -64,7 +63,7 @@ class Post(models.Model):
     content = models.TextField(blank=True)
     hashtags = models.CharField(max_length=255, blank=True)
     post_media = models.ForeignKey(
-        "PostMedia", on_delete=models.CASCADE, related_name="post_media", null=True
+        "PostMedia", on_delete=models.CASCADE, related_name="post_media", blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
     comments = models.ManyToManyField("Comment", blank=True, related_name="posts")
@@ -74,15 +73,15 @@ class Post(models.Model):
         ordering = ("-created_at",)
 
     def __str__(self):
-        return self.title
+        return f"{self.owner}: {self.title}"
 
 
 class PostMedia(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="media_files")
-    media = models.FileField(upload_to=post_media_file_path)
+    media = models.FileField(upload_to=post_media_file_path, blank=True, null=True)
 
     def __str__(self):
-        return self.id
+        return f"Post: {self.post} , media file number: {str(self.id)}"
 
 
 class Comment(models.Model):
@@ -107,6 +106,7 @@ class Like(models.Model):
     user = models.ForeignKey(
         get_user_model(), on_delete=models.CASCADE, related_name="likes"
     )
+    is_liked = models.BooleanField(default=True)
 
     class Meta:
         unique_together = (("user", "post"),)
