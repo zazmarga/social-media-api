@@ -24,6 +24,12 @@ class ProfileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsUserAllOwnIsAuthenticatedReadOnly]
     serializer_class = ProfileSerializer
 
+    def get_queryset(self):
+        queryset = Profile.objects.select_related("user").prefetch_related(
+            "followers", "following"
+        )
+        return queryset
+
     def get_serializer_class(self):
         if self.action in (
             "list",

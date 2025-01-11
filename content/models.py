@@ -37,7 +37,6 @@ class Profile(models.Model):
         null=True, blank=True, upload_to=profile_picture_file_path
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    # relations = models.ManyToManyField("Profile", through="Relation", blank=True)
 
     class Meta:
         indexes = [

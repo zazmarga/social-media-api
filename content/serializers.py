@@ -68,11 +68,11 @@ class ProfileListSerializer(serializers.ModelSerializer):
         )
 
     def get_followers(self, obj):
-        followers = Relation.objects.filter(following=obj)
+        followers = obj.followers.all()
         return RelationFollowersSerializer(followers, many=True).data
 
     def get_following(self, obj):
-        following = Relation.objects.filter(follower=obj)
+        following = obj.following.all()
         return RelationFollowingSerializer(following, many=True).data
 
 
@@ -96,11 +96,11 @@ class ProfileRetrieveSerializer(serializers.ModelSerializer):
         )
 
     def get_followers(self, obj):
-        followers = Relation.objects.filter(following=obj)
+        followers = obj.followers.all()
         return RelationFollowersSerializer(followers, many=True).data
 
     def get_following(self, obj):
-        following = Relation.objects.filter(follower=obj)
+        following = obj.following.all()
         return RelationFollowingSerializer(following, many=True).data
 
 
@@ -108,14 +108,6 @@ class ProfilePictureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ("id", "profile_picture")
-
-
-# class MyProfileSerializer(serializers.ModelSerializer):
-
-
-#     class Meta:
-#         model = Profile
-#         fields = ("id", "nickname", "first_name", "last_name")
 
 
 class PostSerializer(serializers.ModelSerializer):
