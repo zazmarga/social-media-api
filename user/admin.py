@@ -10,7 +10,6 @@ class UserAdmin(DjangoUserAdmin):
 
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        (_("Personal info"), {"fields": ("first_name", "last_name")}),
         (
             _("Permissions"),
             {
@@ -34,6 +33,6 @@ class UserAdmin(DjangoUserAdmin):
             },
         ),
     )
-    list_display = ("email", "first_name", "last_name", "is_staff")
-    search_fields = ("email", "first_name", "last_name")
+    list_display = ("email", "is_staff")
+    search_fields = ("email",)
     ordering = ("email",)

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from content.models import Profile, Post, PostMedia, Comment, Like
+from content.models import Profile, Post, PostMedia, Comment, Like, Relation
 
 
 class PostMediaInline(admin.TabularInline):
@@ -18,3 +18,4 @@ admin.site.register(Profile)
 admin.site.register(PostMedia)
 admin.site.register(Comment)
 admin.site.register(Like)
+admin.site.register(Relation)

@@ -138,4 +138,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "user.authentication.SocialMediaTokenAuthentication",
     ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "content.permissions.IsUserAllOwnIsAuthenticatedReadOnly",
+    ],
 }

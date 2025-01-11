@@ -4,6 +4,7 @@ import uuid
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.text import slugify
+from rest_framework.exceptions import ValidationError
 
 
 def media_file_path(instance: "Profile", filename: str, catalog: str) -> pathlib.Path:
@@ -26,48 +27,67 @@ class Profile(models.Model):
         ("O", "Other"),
     )
     user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE)
-    nickname = models.CharField(max_length=48)
-    profile_status = models.CharField(null=True, blank=True, max_length=255)
+    nickname = models.CharField(max_length=30, blank=True)
+    first_name = models.CharField(max_length=48)
+    last_name = models.CharField(max_length=48)
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    birth_date = models.DateField(null=True, blank=True)
+    bio = models.TextField(null=True, blank=True)
     profile_picture = models.ImageField(
         null=True, blank=True, upload_to=profile_picture_file_path
     )
-    birth_date = models.DateField(null=True, blank=True)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
-    bio = models.TextField(null=True, blank=True)
-    followers = models.ManyToManyField(
-        get_user_model(), related_name="followers_profiles", blank=True
-    )
-    followings = models.ManyToManyField(
-        get_user_model(), related_name="followings_profiles", blank=True
-    )
     created_at = models.DateTimeField(auto_now_add=True)
+    # relations = models.ManyToManyField("Profile", through="Relation", blank=True)
 
     class Meta:
         indexes = [
             models.Index(
                 fields=[
-                    "user",
+                    "first_name",
+                    "last_name",
                 ]
             ),
         ]
 
     def __str__(self):
-        return f"{self.user} - {self.nickname}"
+        return f"{self.first_name} {self.last_name}"
+
+
+class Relation(models.Model):
+    follower = models.ForeignKey(
+        Profile, related_name="followers", on_delete=models.CASCADE
+    )
+    following = models.ForeignKey(
+        Profile, related_name="following", on_delete=models.CASCADE
+    )
+
+    def __str__(self):
+        return f"{self.follower} {self.following}"
 
 
 class Post(models.Model):
-    owner = models.ForeignKey(
-        get_user_model(), on_delete=models.CASCADE, related_name="posts"
-    )
+    owner = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="posts")
     title = models.CharField(max_length=255)
     content = models.TextField(blank=True)
     hashtags = models.CharField(max_length=255, blank=True)
-    post_media = models.ForeignKey(
-        "PostMedia", on_delete=models.CASCADE, related_name="post_media", blank=True
-    )
     created_at = models.DateTimeField(auto_now_add=True)
+    post_media = models.ForeignKey(
+        "PostMedia", on_delete=models.CASCADE, related_name="post_medias", blank=True
+    )
     comments = models.ManyToManyField("Comment", blank=True, related_name="posts")
     likes = models.ManyToManyField("Like", blank=True, related_name="posts")
+
+    @property
+    def is_liked(self):
+        return self.likes.filter(is_liked=True).count()
+
+    @property
+    def is_unliked(self):
+        return self.likes.filter(is_liked=False).count()
+
+    @property
+    def nums_of_comments(self):
+        return self.comments.count()
 
     class Meta:
         ordering = ("-created_at",)
@@ -88,8 +108,8 @@ class Comment(models.Model):
     post = models.ForeignKey(
         Post, on_delete=models.CASCADE, related_name="post_comments"
     )
-    user = models.ForeignKey(
-        get_user_model(), on_delete=models.CASCADE, related_name="comments"
+    owner = models.ForeignKey(
+        Profile, on_delete=models.CASCADE, related_name="comments"
     )
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -98,18 +118,27 @@ class Comment(models.Model):
         ordering = ("-created_at",)
 
     def __str__(self):
-        return f"{self.user} - {self.content}"
+        return f"{self.owner} - {self.content}"
 
 
 class Like(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="post_likes")
-    user = models.ForeignKey(
-        get_user_model(), on_delete=models.CASCADE, related_name="likes"
-    )
-    is_liked = models.BooleanField(default=True)
+    owner = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="likes")
+    is_liked = models.BooleanField(default=False)
+    is_unliked = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = (("user", "post"),)
+        unique_together = (("owner", "post"),)
 
     def __str__(self):
-        return f"{self.user} - {self.post}"
+        return f"{self.owner} - {self.post}"
+
+    def clean(self):
+        if self.is_liked and self.is_unliked:
+            raise ValidationError(
+                "is_liked and is_unliked cannot both be True at the same time."
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
