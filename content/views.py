@@ -5,6 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from content.filters import CustomSearchFilter
 from content.models import Profile, Post
 from content.permissions import IsUserAllOwnIsAuthenticatedReadOnly
 
@@ -23,6 +24,8 @@ class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
     permission_classes = [IsUserAllOwnIsAuthenticatedReadOnly]
     serializer_class = ProfileSerializer
+    filter_backends = [CustomSearchFilter]
+    search_fields = ["nickname", "first_name", "last_name", "birth_date"]
 
     def get_queryset(self):
         queryset = Profile.objects.select_related("user").prefetch_related(

@@ -2,6 +2,10 @@ from django.db.models import CharField
 from rest_framework import serializers
 
 from content.models import Profile, Post, Relation
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
 
 
 # class RelationSerializer(serializers.ModelSerializer):
