@@ -27,7 +27,7 @@ class Profile(models.Model):
         ("O", "Other"),
     )
     user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE)
-    nickname = models.CharField(max_length=30, blank=True)
+    username = models.CharField(max_length=30, blank=True)
     first_name = models.CharField(max_length=48)
     last_name = models.CharField(max_length=48)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
@@ -51,6 +51,10 @@ class Profile(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
 
 class Relation(models.Model):
     follower = models.ForeignKey(
@@ -59,6 +63,10 @@ class Relation(models.Model):
     following = models.ForeignKey(
         Profile, related_name="following", on_delete=models.CASCADE
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = (("follower", "following"),)
 
     def __str__(self):
         return f"{self.follower} {self.following}"

@@ -1,12 +1,12 @@
 from aiohttp import request
 from django.db import IntegrityError
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from content.filters import CustomSearchFilter
-from content.models import Profile, Post
+from content.models import Profile, Post, Relation
 from content.permissions import IsUserAllOwnIsAuthenticatedReadOnly
 
 from content.serializers import (
@@ -15,8 +15,12 @@ from content.serializers import (
     PostListSerializer,
     PostRetrieveSerializer,
     ProfileListSerializer,
-    ProfileRetrieveSerializer,
     ProfilePictureSerializer,
+    RelationAddFollowingSerializer,
+    RelationFollowersSerializer,
+    RelationFollowingSerializer,
+    RelationRetrieveFollowingSerializer,
+    ProfileRetrieveSerializer,
 )
 
 
@@ -25,24 +29,18 @@ class ProfileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsUserAllOwnIsAuthenticatedReadOnly]
     serializer_class = ProfileSerializer
     filter_backends = [CustomSearchFilter]
-    search_fields = ["nickname", "first_name", "last_name", "birth_date"]
+    search_fields = ["username", "first_name", "last_name", "birth_date"]
 
     def get_queryset(self):
         queryset = Profile.objects.select_related("user").prefetch_related(
             "followers", "following"
         )
-        return queryset
+        return queryset.distinct()
 
     def get_serializer_class(self):
-        if self.action in (
-            "list",
-            "retrieve",
-        ):
+        if self.action == "list":
             return ProfileListSerializer
-        if self.action in (
-            "update",
-            "partial_update",
-        ):
+        if self.action == "retrieve":
             return ProfileRetrieveSerializer
         if self.action == "upload_profile_picture":
             return ProfilePictureSerializer
@@ -67,11 +65,85 @@ class ProfileViewSet(viewsets.ModelViewSet):
         url_path="upload_profile_picture",
     )
     def upload_profile_picture(self, request, pk=None):
-        bus = self.get_object()
-        serializer = self.get_serializer(bus, data=request.data)
+        profile = self.get_object()
+        serializer = self.get_serializer(profile, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class RelationFollowingViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    queryset = Relation.objects.all()
+    permission_classes = [IsUserAllOwnIsAuthenticatedReadOnly]
+    serializer_class = RelationFollowingSerializer
+
+    def get_queryset(self):
+        queryset = self.queryset
+        user = self.request.user
+        if self.action in (
+            "list",
+            "retrieve",
+        ):
+            queryset = Relation.objects.filter(follower__user=user)
+        if self.action in ("create",):
+            following_ids = Relation.objects.filter(follower__user=user).values_list(
+                "following__id", flat=True
+            )
+            print(following_ids)
+            queryset = (
+                Relation.objects.filter(follower__user=user)
+                .exclude(following__id__in=following_ids)
+                .exclude(following__user=user)
+            )
+            print(queryset)
+        return queryset
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return RelationRetrieveFollowingSerializer
+        if self.action == "create":
+            return RelationAddFollowingSerializer
+        return RelationFollowingSerializer
+
+    def perform_create(self, serializer):
+        follower_profile = self.request.user.profile
+        following_profile = serializer.validated_data["following"]
+
+        if Relation.objects.filter(
+            follower=follower_profile.id, following=following_profile.id
+        ).exists():
+            return Response(
+                {"detail": "You are already following this profile."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        Relation.objects.create(follower=follower_profile, following=following_profile)
+
+
+class RelationFollowersViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    queryset = Relation.objects.all()
+    permission_classes = [IsUserAllOwnIsAuthenticatedReadOnly]
+    serializer_class = RelationFollowersSerializer
+
+    def get_queryset(self):
+        queryset = self.queryset
+        user = self.request.user
+        if self.action in (
+            "list",
+            "retrieve",
+        ):
+            queryset = Relation.objects.filter(following__user=user)
+        return queryset
 
 
 class PostViewSet(viewsets.ModelViewSet):
