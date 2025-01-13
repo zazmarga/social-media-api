@@ -78,23 +78,8 @@ class Post(models.Model):
     content = models.TextField(blank=True)
     hashtags = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    post_media = models.ForeignKey(
-        "PostMedia", on_delete=models.CASCADE, related_name="post_medias", blank=True
-    )
     comments = models.ManyToManyField("Comment", blank=True, related_name="posts")
     likes = models.ManyToManyField("Like", blank=True, related_name="posts")
-
-    @property
-    def is_liked(self):
-        return self.likes.filter(is_liked=True).count()
-
-    @property
-    def is_unliked(self):
-        return self.likes.filter(is_liked=False).count()
-
-    @property
-    def nums_of_comments(self):
-        return self.comments.count()
 
     class Meta:
         ordering = ("-created_at",)
@@ -105,7 +90,7 @@ class Post(models.Model):
 
 class PostMedia(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="media_files")
-    media = models.FileField(upload_to=post_media_file_path, blank=True, null=True)
+    media = models.FileField(upload_to=post_media_file_path, blank=True)
 
     def __str__(self):
         return f"Post: {self.post} , media file number: {str(self.id)}"

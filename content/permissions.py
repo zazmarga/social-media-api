@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
-from content.models import Profile, Relation
+from content.models import Profile, Relation, Post, Comment
 
 
 class IsUserAllOwnIsAuthenticatedReadOnly(BasePermission):
@@ -22,4 +22,8 @@ class IsUserAllOwnIsAuthenticatedReadOnly(BasePermission):
             return (
                 obj.follower.user == request.user or obj.following.user == request.user
             )
+        if isinstance(obj, Post):
+            return obj.owner == request.user.profile
+        if isinstance(obj, Comment):
+            return obj.owner == request.user.profile
         return False
