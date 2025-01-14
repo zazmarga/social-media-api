@@ -6,7 +6,10 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from content.filters import ProfileSearchFilter, PostSearchFilter
+from content.filters import (
+    ProfileSearchFilter,
+    PostFilter,
+)
 from content.models import Profile, Post, Relation, PostMedia, Comment, Like
 from content.permissions import IsUserAllOwnIsAuthenticatedReadOnly
 
@@ -76,6 +79,14 @@ class ProfileViewSet(viewsets.ModelViewSet):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def list(self, request, *args, **kwargs):
+        """
+        Get list of profiles
+        (optional: filtered by username, last_name, first_name (ex. 'mark')
+            or by birth_date (ex. '1-28') )
+        """
+        return super().list(request, *args, **kwargs)
+
 
 class RelationFollowingViewSet(
     mixins.ListModelMixin,
@@ -130,6 +141,12 @@ class RelationFollowingViewSet(
 
         Relation.objects.create(follower=follower_profile, following=following_profile)
 
+    def list(self, request, *args, **kwargs):
+        """
+        Get a list of profiles that the current user is following
+        """
+        return super().list(request, *args, **kwargs)
+
 
 class RelationFollowersViewSet(
     mixins.ListModelMixin,
@@ -150,13 +167,21 @@ class RelationFollowersViewSet(
             queryset = Relation.objects.filter(following__user=user)
         return queryset
 
+    def list(self, request, *args, **kwargs):
+        """
+        Get a list of profiles that are followers of the current user
+        """
+        return super().list(request, *args, **kwargs)
+
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     permission_classes = [IsUserAllOwnIsAuthenticatedReadOnly]
-    filter_backends = [filters.DjangoFilterBackend, ProfileSearchFilter]
-    filterset_class = PostSearchFilter
+    filter_backends = [
+        filters.DjangoFilterBackend,
+    ]
+    filterset_class = PostFilter
     search_fields = ["hashtags", "title", "content"]
 
     def get_queryset(self):
@@ -172,8 +197,9 @@ class PostViewSet(viewsets.ModelViewSet):
                     "likes", filter=Q(likes__is_unliked=True), distinct=True
                 ),
                 nums_of_comments=Count("comments"),
-            )
-        return queryset.filter(is_draft=False)
+            ).filter(is_draft=False)
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -190,15 +216,6 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user.profile)
-
-    @action(
-        methods=["get"],
-        detail=True,
-        permission_classes=(IsUserAllOwnIsAuthenticatedReadOnly,),
-        url_path="list_liked_posts",
-    )
-    def list_liked_posts(self, request):
-        pass
 
     @action(
         methods=["post"],
@@ -254,6 +271,14 @@ class PostViewSet(viewsets.ModelViewSet):
                     post.likes.remove(like)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def list(self, request, *args, **kwargs):
+        """
+        Get a list of posts of all user-owners
+        (optional: filtered - Liked by me (ex. True), all posts of any user-owner (ex. 4),
+        any string in hashtags, title or content)
+        """
+        return super().list(request, *args, **kwargs)
 
 
 class CommentViewSet(

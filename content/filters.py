@@ -1,7 +1,7 @@
 from django_filters import rest_framework as filters
 from rest_framework.filters import SearchFilter
 from django.utils.translation import gettext_lazy as _
-
+from django.db import models
 from content.models import Post
 
 
@@ -14,17 +14,21 @@ class ProfileSearchFilter(SearchFilter):
     )
 
 
-class PostSearchFilter(filters.FilterSet):
-    search_title = _("Search by post owner id")
-    search_description = _(
-        "Please enter the owner ID (ex. 1) to view all of their messages."
-    )
+# class PostSearchStringFilter(SearchFilter):
+#     search_fields = ["hashtags", "title", "content"]
+#     search_title = _("Search by hashtags, title & content")
+#     search_description = _("Enter please any string")
 
+
+class PostFilter(filters.FilterSet):
     owner = filters.NumberFilter(
         field_name="owner__id", label="Filter post by owner ID"
     )
     liked_by_me = filters.BooleanFilter(
         method="filter_liked_by_me", label="Posts Liked by me"
+    )
+    search = filters.CharFilter(
+        method="filter_search", label=_("Search by hashtags, title & content")
     )
 
     class Meta:
@@ -43,3 +47,10 @@ class PostSearchFilter(filters.FilterSet):
             return queryset.filter(
                 likes__owner=self.request.user.profile, likes__is_unliked=True
             )
+
+    def filter_search(self, queryset, name, value):
+        return queryset.filter(
+            models.Q(hashtags__icontains=value)
+            | models.Q(title__icontains=value)
+            | models.Q(content__icontains=value)
+        )
