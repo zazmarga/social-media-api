@@ -1,9 +1,9 @@
-from datetime import datetime
-
+from django.utils import timezone
 from rest_framework import serializers
 
 from content.models import Profile, Post, Relation, PostMedia, Comment, Like
 from django.contrib.auth import get_user_model
+from .tasks import schedule_post_publication
 
 
 User = get_user_model()
@@ -149,20 +149,25 @@ class PostSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         owner = self.context["request"].user.profile
         title = validated_data.pop("title")
+        hashtags = validated_data.pop("hashtags")
         content = validated_data.pop("content")
-        time_posting = validated_data.pop("time_posting")
-        if time_posting:
-            #  create but no save post hasta time_posting
-
-            #  created_at  = time_posting
-            if time_posting > datetime.now():
-                created_at = time_posting
-            #  planing post in time_posting, create Celery task for save post
-            #  create but no save post hasta time_posting
+        time_posting = validated_data.get("time_posting")
 
         post = Post.objects.create(
-            owner=owner, title=title, content=content, created_at=created_at
+            owner=owner,
+            title=title,
+            content=content,
+            hashtags=hashtags,
         )
+
+        if time_posting:
+            post.is_draft = True
+            post.save()
+            if time_posting > timezone.now():
+                schedule_post_publication.apply_async(
+                    args=[post.id, time_posting], eta=time_posting
+                )
+
         return post
 
 

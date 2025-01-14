@@ -173,7 +173,7 @@ class PostViewSet(viewsets.ModelViewSet):
                 ),
                 nums_of_comments=Count("comments"),
             )
-        return queryset
+        return queryset.filter(is_draft=False)
 
     def get_serializer_class(self):
         if self.action == "list":
