@@ -14,12 +14,6 @@ class ProfileSearchFilter(SearchFilter):
     )
 
 
-# class PostSearchStringFilter(SearchFilter):
-#     search_fields = ["hashtags", "title", "content"]
-#     search_title = _("Search by hashtags, title & content")
-#     search_description = _("Enter please any string")
-
-
 class PostFilter(filters.FilterSet):
     owner = filters.NumberFilter(
         field_name="owner__id", label="Filter post by owner ID"
