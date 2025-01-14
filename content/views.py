@@ -249,13 +249,15 @@ class PostViewSet(viewsets.ModelViewSet):
             )
             if created:
                 post.likes.add(like)
+            if not created:
+                if like.is_liked == like.is_unliked == False:
+                    post.likes.remove(like)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CommentViewSet(
     mixins.ListModelMixin,
-    mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,

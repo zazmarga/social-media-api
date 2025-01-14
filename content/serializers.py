@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from rest_framework import serializers
 
 from content.models import Profile, Post, Relation, PostMedia, Comment, Like
@@ -130,6 +132,7 @@ class PostMediaSerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     media_files = PostMediaSerializer(many=True, read_only=True)
+    time_posting = serializers.DateTimeField(required=False)
 
     class Meta:
         model = Post
@@ -140,13 +143,26 @@ class PostSerializer(serializers.ModelSerializer):
             "hashtags",
             "created_at",
             "media_files",
+            "time_posting",
         )
 
     def create(self, validated_data):
         owner = self.context["request"].user.profile
         title = validated_data.pop("title")
         content = validated_data.pop("content")
-        post = Post.objects.create(owner=owner, title=title, content=content)
+        time_posting = validated_data.pop("time_posting")
+        if time_posting:
+            #  create but no save post hasta time_posting
+
+            #  created_at  = time_posting
+            if time_posting > datetime.now():
+                created_at = time_posting
+            #  planing post in time_posting, create Celery task for save post
+            #  create but no save post hasta time_posting
+
+        post = Post.objects.create(
+            owner=owner, title=title, content=content, created_at=created_at
+        )
         return post
 
 
