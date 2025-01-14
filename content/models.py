@@ -80,6 +80,7 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     comments = models.ManyToManyField("Comment", blank=True, related_name="posts")
     likes = models.ManyToManyField("Like", blank=True, related_name="posts")
+    is_draft = models.BooleanField(default=False)
 
     class Meta:
         ordering = ("-created_at",)
