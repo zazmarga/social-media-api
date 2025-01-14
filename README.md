@@ -54,3 +54,11 @@
 * Run Celery worker for tasks handing: `celery -A social_media_api worker --pool=solo --loglevel=INFO`
 * Run app: `python manage.py runserver`
 * Create superuser: `python manage.py createsuperuser`
+
+
+### Getting access
+ * create user via /api/v1/user/register/   (or superuser)
+ * login as user/superuser via /api/v1/user/login/  for get Token
+ * create your profile via /api/v1/social_media/profiles/
+   (all actions are registered on behalf of your Profile)
+
